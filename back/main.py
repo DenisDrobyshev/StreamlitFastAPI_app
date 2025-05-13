@@ -1,5 +1,4 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import io
@@ -19,6 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {"message": "FastAPI backend is working!"}
+
+
 def transform_coordinates(x: float, y: float, z: float) -> Dict[str, float]:
     #  test
     transformed_x = x * math.cos(math.radians(45)) - y * math.sin(math.radians(45))
@@ -31,9 +35,6 @@ def transform_coordinates(x: float, y: float, z: float) -> Dict[str, float]:
         "transformed_z": round(transformed_z, 3)
     }
 
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse("favicon.ico") 
 
 @app.post("/transform")
 async def transform_file(file: UploadFile = File(...)) -> Dict[str, Any]:
