@@ -6,7 +6,7 @@ import base64
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "http://localhost:8000"  # Измените на URL вашего развернутого бэкенда
+BACKEND_URL = "https://streamlitfastapi-app.onrender.com"  # Измените на URL вашего развернутого бэкенда
 
 st.set_page_config(
     page_title="Система преобразования координат",
