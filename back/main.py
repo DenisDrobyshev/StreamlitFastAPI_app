@@ -90,18 +90,25 @@ def generate_plots(df: pd.DataFrame) -> str:
 
 def generate_word_report(df: pd.DataFrame, stats: Dict[str, Any], plot_path: str) -> io.BytesIO:
     doc = Document()
+
+    # Устанавливаем стандартные стили для документа
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Arial'
+    font.size = 12
     
     # Заголовок
-    doc.add_heading('Статистический отчет по координатам', 0)
+    title = doc.add_heading('Статистический отчет по координатам', level=0)
+    title.style = doc.styles['Heading 1']
     
     # Основная информация
-    doc.add_paragraph(f"Всего точек: {len(df)}")
-    doc.add_paragraph(f"Дата анализа: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}")
+    doc.add_paragraph(f"Всего точек: {len(df)}", style='BodyText')
+    doc.add_paragraph(f"Дата анализа: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}", style='BodyText')
     
     # Добавляем таблицу с основными статистиками
     doc.add_heading('Основные статистики', level=1)
     table = doc.add_table(rows=6, cols=4)
-    table.style = 'LightShading'
+    table.style = 'Light Grid'
     
     # Заголовки таблицы
     hdr_cells = table.rows[0].cells
