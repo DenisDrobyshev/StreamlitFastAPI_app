@@ -8,5 +8,4 @@ streamlit==1.29.0
 requests==2.31.0 
 python-docx==0.8.11
 matplotlib==3.7.1
-pandas==2.0.3
 numpy==1.24.3
