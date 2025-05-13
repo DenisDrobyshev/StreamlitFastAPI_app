@@ -68,10 +68,14 @@ if uploaded_file is not None:
                     
                     with col1:
                         # Скачивание преобразованных данных в Excel
-                        transformed_excel = transformed_df.to_excel(index=False)
+                        output = io.BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            transformed_df.to_excel(writer, index=False, sheet_name='Transformed Data')
+                        excel_data = output.getvalue()
+
                         st.download_button(
                             label="Скачать преобразованные данные (Excel)",
-                            data=transformed_excel,
+                            data=excel_data,
                             file_name=f"transformed_coordinates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
