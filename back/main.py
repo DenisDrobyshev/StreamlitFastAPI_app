@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import io
@@ -30,7 +30,9 @@ def transform_coordinates(x: float, y: float, z: float) -> Dict[str, float]:
         "transformed_z": round(transformed_z, 3)
     }
 
-
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("favicon.ico") 
 
 @app.post("/transform")
 async def transform_file(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -89,5 +91,5 @@ def generate_markdown_report(data: list) -> str:
 
 if __name__ == "__main__":
     import uvicorn
-    
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
