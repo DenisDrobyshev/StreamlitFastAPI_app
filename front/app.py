@@ -4,88 +4,103 @@ import requests
 import io
 import base64
 from datetime import datetime
+import matplotlib.pyplot as plt
+from docx import Document
+from io import BytesIO
 
 # Конфигурация
-BACKEND_URL = "https://streamlitfastapi-app.onrender.com"  # Измените на URL вашего развернутого бэкенда
+BACKEND_URL = "https://streamlitfastapi-app.onrender.com"
 
 st.set_page_config(
-    page_title="Система преобразования координат",
-    page_icon="📍",
+    page_title="Анализ координатных данных",
+    page_icon="📊",
     layout="wide"
 )
 
-st.title("Система преобразования координат")
+st.title("Анализ координатных данных")
 st.markdown("""
-Это приложение позволяет преобразовывать координатные данные из Excel-файлов.
-Загрузите ваш Excel-файл, содержащий координаты x, y, z, чтобы начать.
+Загрузите Excel-файл с координатами x, y, z для получения статистического отчета.
 """)
+
+def display_statistics(stats: dict):
+    st.subheader("Основные статистики")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Среднее X", f"{stats['mean']['x']:.2f}")
+        st.metric("Медиана X", f"{stats['median']['x']:.2f}")
+    
+    with col2:
+        st.metric("Среднее Y", f"{stats['mean']['y']:.2f}")
+        st.metric("Медиана Y", f"{stats['median']['y']:.2f}")
+    
+    with col3:
+        st.metric("Среднее Z", f"{stats['mean']['z']:.2f}")
+        st.metric("Медиана Z", f"{stats['median']['z']:.2f}")
+    
+    st.write("")
+    col4, col5, col6 = st.columns(3)
+    
+    with col4:
+        st.metric("Мин/Макс X", f"{stats['min']['x']:.2f} / {stats['max']['x']:.2f}")
+    
+    with col5:
+        st.metric("Мин/Макс Y", f"{stats['min']['y']:.2f} / {stats['max']['y']:.2f}")
+    
+    with col6:
+        st.metric("Мин/Макс Z", f"{stats['min']['z']:.2f} / {stats['max']['z']:.2f}")
 
 # Загрузка файла
 uploaded_file = st.file_uploader("Выберите Excel-файл", type=['xlsx', 'xls', 'csv'])
 
 if uploaded_file is not None:
     try:
-        # Отображение исходных данных
+        # Предпросмотр данных
         df = pd.read_excel(uploaded_file)
-        st.subheader("Исходные данные")
-        st.dataframe(df)
+        st.subheader("Предпросмотр данных")
+        st.dataframe(df.head())
         
-        # Параметры преобразования
-        st.subheader("Параметры преобразования")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            rotation_angle = st.slider("Угол поворота (градусы)", 0, 360, 45)
-        
-        with col2:
-            z_offset = st.number_input("Смещение по оси Z", value=100.0)
-        
-        # Кнопка преобразования
-        if st.button("Преобразовать координаты"):
-            with st.spinner("Выполняется преобразование координат..."):
-                # Подготовка файла для загрузки
+        if st.button("Проанализировать данные"):
+            with st.spinner("Анализируем данные..."):
                 files = {'file': ('coordinates.xlsx', uploaded_file.getvalue())}
                 
                 try:
-                    # Отправка запроса на бэкенд
-                    response = requests.post(f"{BACKEND_URL}/transform", files=files)
+                    response = requests.post(f"{BACKEND_URL}/analyze", files=files)
                     response.raise_for_status()
-                    
-                    # Обработка ответа
                     result = response.json()
                     
-                    # Отображение преобразованных данных
-                    st.subheader("Преобразованные данные")
-                    transformed_df = pd.DataFrame(result['transformed_data'])
-                    st.dataframe(transformed_df)
+                    # Отображаем статистику
+                    display_statistics(result['statistics'])
                     
-                    # Отображение отчета
-                    st.subheader("Отчет о преобразовании")
+                    # Отображаем графики
+                    st.subheader("Визуализация данных")
+                    plots_bytes = base64.b64decode(result['plots_base64'])
+                    st.image(plots_bytes)
+                    
+                    # Отчет в Markdown
+                    st.subheader("Отчет в Markdown")
                     st.markdown(result['markdown_report'])
                     
                     # Кнопки скачивания
+                    st.subheader("Скачать отчеты")
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        # Скачивание преобразованных данных в Excel
-                        output = io.BytesIO()
-                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                            transformed_df.to_excel(writer, index=False, sheet_name='Transformed Data')
-                        excel_data = output.getvalue()
-
+                        # Word отчет
+                        word_bytes = base64.b64decode(result['word_report'])
                         st.download_button(
-                            label="Скачать преобразованные данные (Excel)",
-                            data=excel_data,
-                            file_name=f"transformed_coordinates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            label="Скачать Word отчет",
+                            data=word_bytes,
+                            file_name=f"coordinates_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         )
                     
                     with col2:
-                        # Скачивание отчета
+                        # Markdown отчет
                         st.download_button(
-                            label="Скачать отчет (Markdown)",
+                            label="Скачать Markdown отчет",
                             data=result['markdown_report'],
-                            file_name=f"transformation_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+                            file_name=f"coordinates_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
                             mime="text/markdown"
                         )
                     
@@ -95,12 +110,11 @@ if uploaded_file is not None:
                     st.error(f"Произошла ошибка: {str(e)}")
     
     except Exception as e:
-        st.error(f"Ошибка чтения Excel-файла: {str(e)}")
+        st.error(f"Ошибка чтения файла: {str(e)}")
 
-# Добавление подвала
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center'>
-    <p>Система преобразования координат | Создано с использованием Streamlit и FastAPI</p>
+    <p>Система анализа координат | Создано с использованием Streamlit и FastAPI</p>
 </div>
-""", unsafe_allow_html=True) 
+""", unsafe_allow_html=True)
