@@ -8,6 +8,7 @@ import math
 import os
 from typing import Dict, Any
 from docx import Document
+from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import Inches
 import matplotlib.pyplot as plt
 import tempfile
@@ -92,13 +93,12 @@ def generate_word_report(df: pd.DataFrame, stats: Dict[str, Any], plot_path: str
     doc = Document()
 
     # Устанавливаем стандартные стили для документа
-    style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Arial'
-    font.size = 12
+    title_style = doc.styles.add_style('ReportTitle', WD_STYLE_TYPE.PARAGRAPH)
+    title_style.font.name = 'Arial'
+    title_style.font.size = 14
     
     # Заголовок
-    title = doc.add_heading('Статистический отчет по координатам', level=0)
+    title = doc.add_heading('Статистический отчет по координатам', level=0).style = 'ReportTitle'
     title.style = doc.styles['Heading 1']
     
     # Основная информация
@@ -163,6 +163,10 @@ def generate_markdown_report(df: pd.DataFrame, stats: Dict[str, Any]) -> str:
 
 @app.post("/analyze")
 async def analyze_file(file: UploadFile = File(...)) -> Dict[str, Any]:
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    if file.size > MAX_FILE_SIZE:
+        raise HTTPException(413, "Файл слишком большой (макс. 5MB)")
+    
     try:
         contents = await file.read()
         df = pd.read_excel(io.BytesIO(contents))

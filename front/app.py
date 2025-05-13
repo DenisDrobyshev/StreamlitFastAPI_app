@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from docx import Document
 from io import BytesIO
 
+
 # Конфигурация
 BACKEND_URL = "https://streamlitfastapi-app.onrender.com"
 

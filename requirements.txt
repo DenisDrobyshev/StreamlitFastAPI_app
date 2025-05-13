@@ -9,3 +9,4 @@ requests==2.31.0
 python-docx==0.8.11
 matplotlib==3.7.1
 numpy==1.24.3
+python-dateutil==2.8.2
