@@ -4,6 +4,7 @@ import pandas as pd
 import io
 from typing import Dict, Any
 import math
+import os
 import numpy as np 
 
 app = FastAPI(title="API преобразования координат")
@@ -88,4 +89,8 @@ def generate_markdown_report(data: list) -> str:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    port = os.getenv("PORT")
+    if not port:
+        port = 8080
+    uvicorn.run(app, host="0.0.0.0", port=8080) 
+    # uvicorn.run(app, host="0.0.0.0", port=8000) 

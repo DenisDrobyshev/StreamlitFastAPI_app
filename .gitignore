@@ -1,5 +1,5 @@
-streamvenv/
-.streamvenv/
+streamvenv/*
+.streamvenv/*
 __pycache__/
 *.pyc
 *.pyo
