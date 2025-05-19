@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import logging
 import tempfile
-from coordinate_transform import GSK_2011, generate_report_md
+from back.coordinate_transform import GSK_2011, generate_report_md
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
