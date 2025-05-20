@@ -26,6 +26,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+def generate_csv(file_path: str, num_rows: int):
+    def random_name(length=5):
+        letters = string.ascii_letters + string.digits
+        return ''.join(random.choice(letters) for _ in range(length))
+    def random_number():
+        return random.randint(100000000, 999999000) / 1000
+    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Name', 'X', 'Y', 'Z'])
+        for _ in range(num_rows):
+            writer.writerow([random_name(), random_number(), random_number(), random_number()])
+
 
 def create_default_parameters(file_path: str = "parameters.json"):
     parameters = {
@@ -87,18 +99,6 @@ def create_default_parameters(file_path: str = "parameters.json"):
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(parameters, f, ensure_ascii=False, indent=4)
 
-def generate_csv(file_path: str, num_rows: int):
-    def random_name(length=5):
-        letters = string.ascii_letters + string.digits
-        return ''.join(random.choice(letters) for _ in range(length))
-    def random_number():
-        return random.randint(1000000, 9999990) / 1000
-    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Name', 'X', 'Y', 'Z'])
-        for _ in range(num_rows):
-            writer.writerow([random_name(), random_number(), random_number(), random_number()])
-
 def GSK_2011(sk1: str, sk2: str, parameters_path: str, df: pd.DataFrame, save_path: Optional[str] = None) -> pd.DataFrame:
     if sk1 == "СК-95" and sk2 == "СК-42":
         df_temp = GSK_2011("СК-95", "ПЗ-90.11", parameters_path, df=df)
@@ -147,6 +147,7 @@ def GSK_2011(sk1: str, sk2: str, parameters_path: str, df: pd.DataFrame, save_pa
     if save_path:
         df_result.to_csv(save_path, index=False)
     return df_result
+
 def generate_markdown_report(df_before: pd.DataFrame, df_after: pd.DataFrame, source_system: str, target_system: str) -> str:
     report = "# Отчёт по преобразованию координат\n"
     report += f"Исходная система: {source_system}\n"
@@ -159,6 +160,7 @@ def generate_markdown_report(df_before: pd.DataFrame, df_after: pd.DataFrame, so
               r"\begin{bmatrix} X \\ Y \\ Z \end{bmatrix} + " \
               r"\begin{bmatrix} \Delta X \\ \Delta Y \\ \Delta Z \end{bmatrix}"
     report += "\n$$\n\n"
+
 
     report += "## 2. Формула с подстановкой параметров\n"
     report += "$$ \n"
@@ -275,7 +277,6 @@ async def generate_report(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при формировании отчёта: {str(e)}")
-    
 
 if __name__ == "__main__":
     import uvicorn
