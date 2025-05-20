@@ -1,11 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 import pandas as pd
-import os
+import json
+from sympy import symbols, Matrix, N, latex
+from datetime import datetime
+from io import BytesIO
+import base64
+from fastapi.middleware.cors import CORSMiddleware
 import logging
-import tempfile
-from back.coordinate_transform import GSK_2011, generate_report_md
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
