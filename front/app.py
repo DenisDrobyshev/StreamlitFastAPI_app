@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+from urllib.parse import urljoin
 import pandas as pd
 from datetime import datetime
 import base64
@@ -9,78 +10,119 @@ BACKEND_URL = "https://streamlitfastapi-app.onrender.com"
 
 st.set_page_config(page_title="Преобразование координат", layout="wide")
 st.title("Система преобразования координат")
-st.markdown("Загрузите Excel-файл с координатами x, y, z для преобразования.")
+st.markdown("Загрузите CSV-файл со столбцами name, x, y, z для преобразования.")
 
-# Получаем доступные системы
-try:
-    response = requests.get(f"{BACKEND_URL}/systems")
-    if response.status_code == 200:
-        systems = response.json().get("systems", [])
-    else:
-        st.error(f"Ошибка сервера: {response.status_code}")
-        systems = ["СК-42", "ПЗ-90.11"]  
-except Exception as e:
-    st.error(f"Не удалось загрузить системы: {e}")
-    systems = ["СК-42", "ПЗ-90.11"]  
+COORDINATE_SYSTEMS = {
+    "СК-42": "russian42",
+    "ПЗ-90.11": "pz9011",
+    "WGS84_G1150": "wgs84",
+    "ГСК-2011": "gsk2011",
+    "ITRF-2008": "itrf08",
+    "СК-95": "russian95",
+    "ПЗ-90": "pz90",
+    "ПЗ-90.02": "pz9002"
+}
 
-col1, col2 = st.columns(2)
-with col1:
-    initial_system = st.selectbox("Выберите начальную систему", systems)
-with col2:
-    target_system = st.selectbox("Выберите конечную систему", systems)
-
-# Загрузка файла
-uploaded_file = st.file_uploader("Выберите Excel-файл", type=["xlsx"])
-
-if uploaded_file is not None:
+def transform_data(file, source_system, target_system):
+    url = urljoin(BACKEND_URL, "/convert-coordinates/")
+    files = {"file": (file.name, file.getvalue(), file.type)}
+    data = {"source_system": source_system, "target_system": target_system}
     try:
-        # Предпросмотр данных
-        df = pd.read_excel(uploaded_file)
-        st.write("📥 Предпросмотр данных:")
-        st.dataframe(df.head())
+        response = requests.post(url, files=files, data=data)
+        if response.status_code == 200:
+            return BytesIO(response.content)
+        else:
+            st.error(f"Ошибка: {response.text}")
+            return None
+    except Exception as e:
+        st.error(f"Ошибка связи с API: {str(e)}")
+        return None
 
-        # Отправка на бэкенд
-        if st.button("Начать преобразование"):
-            files = {
-                "file": (uploaded_file.name, uploaded_file.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            }
-            response = requests.post(
-                f"{BACKEND_URL}/transform",
-                params={"sk1": initial_system, "sk2": target_system},
-                files=files
-            )
+def generate_markdown_report(file, source_system, target_system):
+    url = urljoin(BACKEND_URL, "/generate-report/")
+    files = {"file": (file.name, file.getvalue(), file.type)}
+    data = {"source_system": source_system, "target_system": target_system}
+    try:
+        response = requests.post(url, files=files, data=data)
+        if response.status_code == 200:
+            return BytesIO(response.content)
+        else:
+            st.error(f"Ошибка: {response.text}")
+            return None
+    except Exception as e:
+        st.error(f"Ошибка связи с API: {str(e)}")
+        return None
 
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("status") == "success":
-                    st.success("Преобразование завершено!")
-                    excel_data = base64.b64decode(result["data"])
-                    transformed_df = pd.read_excel(BytesIO(excel_data))
-                    st.subheader("Результаты преобразования")
-                    st.dataframe(transformed_df)
-           
-                    st.subheader("Markdown отчет")
-                    st.markdown(result["report"])
-           
-                    output_filename = f"transformed_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                    st.download_button(
-                        label="Скачать результаты (Excel)",
-                        data=excel_data,
-                        file_name=output_filename,
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+def main_interface():
+    with st.container(border=True):
+        uploaded_file = st.file_uploader(
+            "Перетащите файл с координатами", 
+            type=["csv", "xlsx"],
+            help="Поддерживаются xlsx и csv файлы с координатами name x y z"
+        )
+
+    if uploaded_file:
+        try:
+            df = pd.read_csv(uploaded_file) if uploaded_file.type == "text/csv" else pd.read_excel(uploaded_file)
+            
+            if not {"Name", "X", "Y", "Z"}.issubset(df.columns):
+                st.error("Неверная структура файла")
+                return
+
+            with st.container():
+                col1, col2 = st.columns([2, 3])
+                with col1:
+                    st.subheader("Параметры преобразования")
+                    src_sys = st.selectbox(
+                        "Исходная система", 
+                        options=list(COORDINATE_SYSTEMS.keys()),
+                        index=3
+                    )
+                    tgt_sys = st.selectbox(
+                        "Целевая система", 
+                        options=list(COORDINATE_SYSTEMS.keys()),
+                        index=5
                     )
                     
-                    report_filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-                    st.download_button(
-                        label="Скачать отчет (Markdown)",
-                        data=result["report"],
-                        file_name=report_filename,
-                        mime="text/markdown"
-                    )
-                else:
-                    st.error(f"Ошибка: {result.get('message', 'Неизвестная ошибка')}")
-            else:
-                st.error(f"Ошибка сервера: {response.text}")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        if st.button("Конвертировать", use_container_width=True):
+                            with st.spinner("Преобразование..."):
+                                result = transform_data(uploaded_file, src_sys, tgt_sys)
+                                if result:
+                                    st.session_state.converted_data = result
+                    with c2:
+                        if st.button("Создать отчет", type="secondary", use_container_width=True):
+                            with st.spinner("Формируем отчёт..."):
+                                report_data = generate_markdown_report(uploaded_file, src_sys, tgt_sys)
+                            if report_data:
+                                st.download_button(
+                                    label="Скачать отчет в формате Markdown",
+                                    data=report_data,
+                                    file_name="report.md",
+                                    mime="text/markdown"
+                                )
 
-    except Exception as e:
-        st.error(f"Ошибка: {str(e)}")
+                with col2:
+                    st.subheader("Структура данных")
+                    st.dataframe(
+                        df.head(5).style.highlight_max(color="#F8C471").format(precision=3),
+                        use_container_width=True
+                    )
+
+            if "converted_data" in st.session_state:
+                st.divider()
+                st.success("Конец преобразования")
+                st.download_button(
+                    label="Скачать результат",
+                    data=st.session_state.converted_data,
+                    file_name="transformed_coordinates.csv",
+                    mime="text/csv",
+                    type="primary"
+                )
+
+        except Exception as e:
+            st.error(f"Критическая ошибка: {str(e)}")
+
+if __name__ == "__main__":
+    main_interface()
