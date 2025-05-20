@@ -70,9 +70,7 @@ def main_interface():
                 return
 
             with st.container():
-                col = st.column()
-                with col:
-                    st.subheader("Параметры преобразования")
+                with st.subheader("Параметры преобразования"):
                     src_sys = st.selectbox(
                         "Исходная система", 
                         options=list(COORDINATE_SYSTEMS.keys()),
