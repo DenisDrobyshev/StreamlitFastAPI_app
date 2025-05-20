@@ -70,8 +70,8 @@ def main_interface():
                 return
 
             with st.container():
-                col1, col2 = st.columns([2, 3])
-                with col1:
+                col = st.column()
+                with col:
                     st.subheader("Параметры преобразования")
                     src_sys = st.selectbox(
                         "Исходная система", 
@@ -103,13 +103,6 @@ def main_interface():
                                     mime="text/markdown"
                                 )
 
-                with col2:
-                    st.subheader("Структура данных")
-                    st.dataframe(
-                        df.head(5).style.highlight_max(color="#F8C471").format(precision=3),
-                        use_container_width=True
-                    )
-
             if "converted_data" in st.session_state:
                 st.divider()
                 st.success("Конец преобразования")
@@ -123,6 +116,7 @@ def main_interface():
 
         except Exception as e:
             st.error(f"Критическая ошибка: {str(e)}")
+
 
 if __name__ == "__main__":
     main_interface()
